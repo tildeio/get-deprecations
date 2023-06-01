@@ -29,19 +29,26 @@ function processFile(filename: string): Entry[] {
   function isDebugIfStatement(path: NodePath<IfStatement>): boolean {
     let found = false;
 
-    traverse(
-      path.node.test,
-      {
-        Identifier(path) {
-          if (path.node.name === "DEBUG") {
-            found = true;
-          }
+    if (
+      path.node.test.type === "Identifier" &&
+      path.node.test.name === "DEBUG"
+    ) {
+      found = true;
+    } else {
+      traverse(
+        path.node.test,
+        {
+          Identifier(path) {
+            if (path.node.name === "DEBUG") {
+              found = true;
+            }
+          },
         },
-      },
-      path.scope,
-      path.state,
-      path
-    );
+        path.scope,
+        path.state,
+        path
+      );
+    }
 
     return found;
   }
@@ -140,12 +147,17 @@ function formatReport(entries: Entry[]): void {
   }
 
   for (let id of [...grouped.keys()].sort()) {
-    report += `# ${id}\n\n`;
+    let printTitle = () => {
+      report += `# ${id}\n\n`;
+      printTitle = () => {};
+    };
 
     for (let entry of grouped.get(id) ?? []) {
       if (!entry.debug) {
         continue;
       }
+
+      printTitle();
 
       report += `## \`${entry.filename}:${entry.line}\`\n\n`;
 
